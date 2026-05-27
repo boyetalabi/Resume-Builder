@@ -14,11 +14,10 @@ async function getAvailableModel(apiKey) {
     const data = await response.json();
     
     if (data.models) {
-      // Find a model that supports generateContent and starts with gemini-1.5
-      const validModel = data.models.find(m => 
-        m.supportedGenerationMethods.includes('generateContent') && 
-        (m.name.includes('gemini-1.5-flash') || m.name.includes('gemini-1.5-pro') || m.name.includes('gemini-2.0-flash'))
-      );
+      // Prefer gemini-1.5-flash, then gemini-1.5-pro
+      const validModel = data.models.find(m => m.name === 'models/gemini-1.5-flash') 
+                      || data.models.find(m => m.name === 'models/gemini-1.5-pro')
+                      || data.models.find(m => m.supportedGenerationMethods.includes('generateContent') && m.name.includes('gemini-1.5'));
       
       if (validModel) {
         cachedModelName = validModel.name; // usually "models/gemini-1.5-flash"
