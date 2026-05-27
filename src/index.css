@@ -48,7 +48,7 @@ body {
   display: flex;
   flex-direction: column;
   background-color: #e2e8f0;
-  overflow-y: auto;
+  overflow: auto;
   align-items: center;
   padding: 2rem;
 }
