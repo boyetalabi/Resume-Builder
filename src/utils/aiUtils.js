@@ -2,7 +2,35 @@ const getApiKey = () => {
   return import.meta.env.VITE_GEMINI_API_KEY;
 };
 
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
+const BASE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+
+let cachedModelName = null;
+
+async function getAvailableModel(apiKey) {
+  if (cachedModelName) return cachedModelName;
+  
+  try {
+    const response = await fetch(`${BASE_API_URL}?key=${apiKey}`);
+    const data = await response.json();
+    
+    if (data.models) {
+      // Find a model that supports generateContent and starts with gemini-1.5
+      const validModel = data.models.find(m => 
+        m.supportedGenerationMethods.includes('generateContent') && 
+        (m.name.includes('gemini-1.5-flash') || m.name.includes('gemini-1.5-pro') || m.name.includes('gemini-2.0-flash'))
+      );
+      
+      if (validModel) {
+        cachedModelName = validModel.name; // usually "models/gemini-1.5-flash"
+        return cachedModelName;
+      }
+    }
+    // Fallback to strict standard
+    return 'models/gemini-1.5-flash';
+  } catch (e) {
+    return 'models/gemini-1.5-flash';
+  }
+}
 
 /**
  * Helper function to call Gemini API
@@ -10,10 +38,13 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/
 async function callGeminiAPI(systemPrompt, userPrompt) {
   const apiKey = getApiKey();
   if (!apiKey || apiKey === 'your_api_key_here') {
-    throw new Error('Google Gemini API Key is missing. Please add VITE_GEMINI_API_KEY to your .env file.');
+    throw new Error('Google Gemini API Key is missing. Please add VITE_GEMINI_API_KEY to your .env file or Vercel Environment Variables.');
   }
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+  const modelName = await getAvailableModel(apiKey);
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
