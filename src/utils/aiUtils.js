@@ -14,20 +14,22 @@ async function getAvailableModel(apiKey) {
     const data = await response.json();
     
     if (data.models) {
-      // Prefer gemini-1.5-flash, then gemini-1.5-pro
+      // Pick the first available model that supports generateContent
+      // Try to avoid experimental or specific fine-tuned ones if possible, but take what we can get.
       const validModel = data.models.find(m => m.name === 'models/gemini-1.5-flash') 
                       || data.models.find(m => m.name === 'models/gemini-1.5-pro')
-                      || data.models.find(m => m.supportedGenerationMethods.includes('generateContent') && m.name.includes('gemini-1.5'));
+                      || data.models.find(m => m.name === 'models/gemini-pro')
+                      || data.models.find(m => m.supportedGenerationMethods.includes('generateContent'));
       
       if (validModel) {
-        cachedModelName = validModel.name; // usually "models/gemini-1.5-flash"
+        cachedModelName = validModel.name; 
         return cachedModelName;
       }
     }
-    // Fallback to strict standard
-    return 'models/gemini-1.5-flash';
+    // Absolute fallback
+    return 'models/gemini-pro';
   } catch (e) {
-    return 'models/gemini-1.5-flash';
+    return 'models/gemini-pro';
   }
 }
 
@@ -49,11 +51,8 @@ async function callGeminiAPI(systemPrompt, userPrompt) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      system_instruction: {
-        parts: [{ text: systemPrompt }]
-      },
       contents: [{
-        parts: [{ text: userPrompt }]
+        parts: [{ text: `SYSTEM INSTRUCTION: ${systemPrompt}\n\nUSER PROMPT: ${userPrompt}` }]
       }],
       generationConfig: {
         response_mime_type: "application/json",
