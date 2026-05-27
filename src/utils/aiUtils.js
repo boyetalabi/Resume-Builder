@@ -53,10 +53,8 @@ async function callGeminiAPI(systemPrompt, userPrompt) {
     body: JSON.stringify({
       contents: [{
         parts: [{ text: `SYSTEM INSTRUCTION: ${systemPrompt}\n\nUSER PROMPT: ${userPrompt}` }]
-      }],
-      generationConfig: {
-        response_mime_type: "application/json",
-      }
+      }]
+      // Removed response_mime_type to ensure 100% compatibility with older fallback models
     })
   });
 
@@ -69,9 +67,12 @@ async function callGeminiAPI(systemPrompt, userPrompt) {
   const text = data.candidates[0].content.parts[0].text;
   
   try {
-    return JSON.parse(text);
+    // Strip markdown code blocks in case the model wraps the JSON
+    const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
   } catch (e) {
-    throw new Error('Failed to parse AI response as JSON.');
+    console.error("Raw AI Response:", text);
+    throw new Error('Failed to parse AI response. Try a different prompt.');
   }
 }
 
